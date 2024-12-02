@@ -1,5 +1,4 @@
 
-![icon-128](https://github.com/user-attachments/assets/327d3259-d289-4478-bde5-6e0416a8af66)
 This browser extension is designed to simplify the testing and validation of DMARC (Domain-based Message Authentication, Reporting, and Conformance) policies. It provides an intuitive interface to analyze and debug DMARC configurations, helping organizations enhance their email security and prevent spoofing attacks.
 
 Key Features:
