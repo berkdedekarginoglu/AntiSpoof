@@ -21,11 +21,11 @@ function checkMessageId() {
             return;
         }
 
-        sendToSecondEndpoint(messageId, ikValue);
+        getScanResult(messageId, ikValue);
     }
 }
 
-function sendToSecondEndpoint(messageId, ikValue) {
+function getScanResult(messageId, ikValue) {
     const requestUrl = `https://mail.google.com/mail/u/0/?ik=${ikValue}&view=om&permmsgid=${messageId}`;
 
     fetch(requestUrl)
