@@ -7,7 +7,7 @@ This browser extension is designed to simplify the testing and validation of DMA
 
 Key Features:
 
-Validate DMARC DNS records.
+Validate DMARC, SPF, DKIM DNS records.
 Simulate various email scenarios to test the effectiveness of DMARC policies.
 Generate detailed reports with actionable insights for improved configuration.
 This tool is ideal for security engineers, IT administrators, and anyone focused on email security and anti-spoofing measures.
