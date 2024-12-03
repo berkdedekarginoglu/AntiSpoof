@@ -12,5 +12,6 @@ Simulate various email scenarios to test the effectiveness of DMARC policies.
 Generate detailed reports with actionable insights for improved configuration.
 This tool is ideal for security engineers, IT administrators, and anyone focused on email security and anti-spoofing measures.
 
-![image](https://github.com/user-attachments/assets/3004bfe0-c61c-45a7-938c-78dc12c98a55)
+![1280-800](https://github.com/user-attachments/assets/013cfe04-5533-409a-93bd-dd2c91070c09)
+
 
