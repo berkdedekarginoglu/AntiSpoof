@@ -36,8 +36,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 },
                 title: {
                     display: true,
-                    text: 'Anti Spoof',
+                    text: 'ANTI SPOOF',
                     color: 'white',
+                    font: {
+                        size: 16
+                    }
                 },
             },
             scales: {
@@ -226,7 +229,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const languageButton = document.getElementById('language-button');
 
     // Language settings
-
     function loadTranslations(language) {
         fetch('local.json')
             .then(response => response.json())
