@@ -1,0 +1,40 @@
+{
+  "en": {
+    "home": "Home",
+    "about_us": "About Us",
+    "enter_domain": "Enter domain or subdomain",
+    "exclude_domains": "Exclude Domains",
+    "reset_statistics": "Reset Statistics",
+    "no_domains_excluded": "No domains excluded yet.",
+    "add": "Add",
+    "remove": "Remove",
+    "anti_spoof": "Anti Spoof",
+    "verification_results": "Verification Results",
+    "success": "Success",
+    "dmarc_fail": "DMARC Fail",
+    "dkim_fail": "DKIM Fail",
+    "spf_fail": "SPF Fail",
+    "team_description": "We’re two passionate offensive security engineers on a mission to make things easier and more efficient, without breaking anything (for hackers and humans alike). 🚀",
+    "coffee": "☕ Buy us a Coffee",
+    "meet_the_team": "Meet the Team"
+  },
+  "tr": {
+    "home": "Anasayfa",
+    "about_us": "Hakkımızda",
+    "enter_domain": "Alan adı veya alt alan adı girin",
+    "exclude_domains": "Alan Adlarını Hariç Tut",
+    "reset_statistics": "İstatistikleri Sıfırla",
+    "no_domains_excluded": "Henüz hariç tutulan alan adı yok.",
+    "add": "Ekle",
+    "remove": "Kaldır",
+    "anti_spoof": "Anti Spoof",
+    "verification_results": "Doğrulama Sonuçları",
+    "success": "Başarılı",
+    "dmarc_fail": "DMARC Başarısız",
+    "dkim_fail": "DKIM Başarısız",
+    "spf_fail": "SPF Başarısız",
+    "team_description": "Biz iki tutkulu ofansif güvenlik mühendisiyiz ve amacımız bir şeyleri kırmadan daha kolay ve verimli hale getirmek (hem hackerlar hem de insanlar için).  🚀",
+    "coffee": "☕ Bize bir Kahve Ismarla",
+    "meet_the_team": "Ekibi Tanıyın"
+  }
+}

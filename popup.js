@@ -195,49 +195,87 @@ document.addEventListener('DOMContentLoaded', () => {
     updateExcludedDomainsUI();
 
     // Toggle sections
-    const settingsButton = document.getElementById('settings-button');
-    const developersButton = document.getElementById('developers-button');
-    const settingsSection = document.getElementById('settings-section');
-    const developersSection = document.getElementById('developers-section');
-    const excludedDomainsSection = document.getElementById('excluded-domains');
+    const homeButton = document.getElementById('home-button');
+    const aboutUsButton = document.getElementById('about-us-button');
+    const excludeDomainsSection = document.getElementById('excluded-domains');
+    const aboutUsSection = document.getElementById('about-us-section');
 
-    function toggleSection(sectionToShow, sectionToHide) {
-        if (sectionToShow.classList.contains('hidden')) {
-            sectionToShow.classList.remove('hidden');
-            sectionToHide.classList.add('hidden');
-            excludedDomainsSection.classList.add('hidden');
-            domainInputGroup.classList.add('hidden');
-            excludeDomainsTitle.classList.add('hidden');
-        } else {
-            sectionToShow.classList.add('hidden');
-            excludedDomainsSection.classList.remove('hidden');
-            domainInputGroup.classList.remove('hidden');
-            excludeDomainsTitle.classList.remove('hidden');
-        }
+    function showSection(sectionToShow, sectionToHide) {
+        sectionToShow.classList.remove('hidden');
+        sectionToHide.classList.add('hidden');
     }
 
-    settingsButton.addEventListener('click', () => {
-        toggleSection(settingsSection, developersSection);
+    homeButton.addEventListener('click', () => {
+        showSection(excludeDomainsSection, aboutUsSection);
+        domainInputGroup.classList.remove('hidden');
+        excludeDomainsTitle.classList.remove('hidden');
     });
 
-    developersButton.addEventListener('click', () => {
-        toggleSection(developersSection, settingsSection);
+    aboutUsButton.addEventListener('click', () => {
+        if (!aboutUsSection.classList.contains('hidden')) {
+            showSection(excludeDomainsSection, aboutUsSection);
+            domainInputGroup.classList.remove('hidden');
+            excludeDomainsTitle.classList.remove('hidden');
+        } else {
+            showSection(aboutUsSection, excludeDomainsSection);
+            domainInputGroup.classList.add('hidden');
+            excludeDomainsTitle.classList.add('hidden');
+        }
     });
 
-    // Language selection functionality
     const languageButton = document.getElementById('language-button');
 
+    // Language settings
+
+    function loadTranslations(language) {
+        fetch('local.json')
+            .then(response => response.json())
+            .then(translations => {
+                const texts = translations[language];
+                homeButton.textContent = texts.home;
+                aboutUsButton.textContent = texts.about_us;
+                addDomainButton.textContent = texts.add;
+                excludeDomainsTitle.textContent = texts.exclude_domains;
+                domainInput.placeholder = texts.enter_domain;
+                if (excludedDomainsContainer.children.length === 0) {
+                    excludedDomainsContainer.innerHTML = `<p>${texts.no_domains_excluded}</p>`;
+                }
+                document.querySelector('.team-description').textContent = texts.team_description;
+                document.querySelector('.coffee-link').textContent = texts.coffee;
+                document.querySelector('#about-us-section h2').textContent = texts.meet_the_team;
+            });
+    }
+
     function updateLanguageButton() {
-        const currentLanguage = localStorage.getItem('language') || 'tr';
-        languageButton.textContent = currentLanguage.toUpperCase();
+        chrome.storage.local.get('language', (data) => {
+            const currentLanguage = data.language || 'tr';
+            languageButton.textContent = currentLanguage.toUpperCase();
+            loadTranslations(currentLanguage);
+
+            // Update the no domains excluded message if the container is empty
+            chrome.storage.local.get('excludedDomains', (data) => {
+                const excludedDomains = data.excludedDomains || [];
+                if (excludedDomains.length === 0) {
+                    fetch('local.json')
+                        .then(response => response.json())
+                        .then(translations => {
+                            const texts = translations[currentLanguage];
+                            excludedDomainsContainer.innerHTML = `<p>${texts.no_domains_excluded}</p>`;
+                        });
+                }
+            });
+        });
     }
 
     languageButton.addEventListener('click', () => {
-        const currentLanguage = localStorage.getItem('language') || 'tr';
-        const newLanguage = currentLanguage === 'tr' ? 'en' : 'tr';
-        localStorage.setItem('language', newLanguage);
-        updateLanguageButton();
-        console.log(`Language set to ${newLanguage.toUpperCase()}`);
+        chrome.storage.local.get('language', (data) => {
+            const currentLanguage = data.language || 'tr';
+            const newLanguage = currentLanguage === 'tr' ? 'en' : 'tr';
+            chrome.storage.local.set({ language: newLanguage }, () => {
+                updateLanguageButton();
+                console.log(`Language set to ${newLanguage.toUpperCase()}`);
+            });
+        });
     });
 
     // Initial load of language setting

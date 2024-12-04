@@ -1,7 +1,7 @@
 
 function initializeStorage() {
     // Initialize results object if not present
-    chrome.storage.local.get(['results', 'checkedMessages', 'excludedDomains'], (data) => {
+    chrome.storage.local.get(['results', 'checkedMessages', 'excludedDomains', 'language'], (data) => {
         if (!data.results) {
             chrome.storage.local.set({
                 results: {
@@ -21,13 +21,10 @@ function initializeStorage() {
         if (!data.excludedDomains) {
             chrome.storage.local.set({ excludedDomains: [] });
         }
+        if (!data.language) {
+            initializeLanguage();
+        }
     });
-
-    // Check if language is set in localStorage, if not, initialize it
-    if (!localStorage.getItem('language')) {
-        initializeLanguage();
-        console.log('Language initialized successfully.');
-    }
 }
 
 initializeStorage();
@@ -141,115 +138,116 @@ function getScanResult(messageId, ikValue, userIndex) {
 
 // Function to initialize the language setting
 function initializeLanguage() {
-    if (!localStorage.getItem('language')) {
-        const browserLanguage = navigator.language || navigator.userLanguage;
-        console.log('Browser language:', browserLanguage);
-        const defaultLanguage = browserLanguage.startsWith('tr') ? 'tr' : 'en';
-        localStorage.setItem('language', defaultLanguage);
-    }
+    const browserLanguage = navigator.language || navigator.userLanguage;
+    const defaultLanguage = browserLanguage.startsWith('tr') ? 'tr' : 'en';
+    chrome.storage.local.set({ language: defaultLanguage });
 }
 
 // Function to get the user language from localStorage
-function getUserLanguage() {
-    return localStorage.getItem('language') || 'tr'; // Default to "tr" if language is not available
+function getUserLanguage(callback) {
+    chrome.storage.local.get('language', (data) => {
+        callback(data.language || 'tr'); // Default to "tr" if language is not available
+    });
 }
 
-function renderSpamWarning(result, subjectElement, language) {
-    console.log("language: ", language);
+function renderSpamWarning(result, subjectElement) {
+    getUserLanguage((language) => {
+        console.log("language: ", language);
 
-    // Remove previous badges
-    const existingBadgeContainer = subjectElement.previousElementSibling;
-    if (existingBadgeContainer) {
-        existingBadgeContainer.remove();
-    }
-
-    // Badge Container
-    const badgeContainer = document.createElement('div');
-    badgeContainer.style.cssText = `
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        margin-bottom: 8px;
-        padding: 12px 20px;
-        border-radius: 8px;
-        font-family: Arial, sans-serif;
-        position: relative;
-        width: fit-content; /* Dinamik genişlik */
-        max-width: 100%; /* Ebeveyn genişliği aşılmasın */
-        box-sizing: border-box;
-        animation: gradient-flow 6s ease infinite; /* Hareketli gradient */
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
-    `;
-
-    // Determine message, color, and icon based on result
-    const assessment = generatePastelMessage(result, language);
-    const { message, color, iconUrl, textColor } = assessment;
-
-    // Inject animation styles dynamically
-    const styleElement = document.createElement("style");
-    styleElement.textContent = `
-        @keyframes gradient-flow {
-            0% {
-                background-position: 0% 50%;
-            }
-            50% {
-                background-position: 100% 50%;
-            }
-            100% {
-                background-position: 0% 50%;
-            }
+        // Remove previous badges
+        const existingBadgeContainer = subjectElement.previousElementSibling;
+        if (existingBadgeContainer) {
+            existingBadgeContainer.remove();
         }
 
-        .animated-gradient {
-            background: ${color};
-            background-size: 300% 300%;
-        }
-    `;
-    document.head.appendChild(styleElement);
+        // Badge Container
+        const badgeContainer = document.createElement('div');
+        badgeContainer.style.cssText = `
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 8px;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-family: Arial, sans-serif;
+            position: relative;
+            width: fit-content; /* Dinamik genişlik */
+            max-width: 100%; /* Ebeveyn genişliği aşılmasın */
+            box-sizing: border-box;
+            animation: gradient-flow 6s ease infinite; /* Hareketli gradient */
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+        `;
 
-    // Configure the animated badge
-    badgeContainer.classList.add('animated-gradient');
+        // Determine message, color, and icon based on result
+        const assessment = generatePastelMessage(result, language);
+        const { message, color, iconUrl, textColor } = assessment;
 
-    // Create message box
-    const messageBox = document.createElement('div');
-    messageBox.style.cssText = `
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        color: ${textColor};
-        font-size: 16px; /* Daha belirgin yazı boyutu */
-        font-weight: bold;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    `;
+        // Inject animation styles dynamically
+        const styleElement = document.createElement("style");
+        styleElement.textContent = `
+            @keyframes gradient-flow {
+                0% {
+                    background-position: 0% 50%;
+                }
+                50% {
+                    background-position: 100% 50%;
+                }
+                100% {
+                    background-position: 0% 50%;
+                }
+            }
 
-    // Add icon
-    const icon = document.createElement('img');
-    icon.src = iconUrl;
-    icon.alt = "Icon";
-    icon.style.cssText = `
-        width: 24px;
-        height: 24px;
-        object-fit: contain;
-    `;
+            .animated-gradient {
+                background: ${color};
+                background-size: 300% 300%;
+            }
+        `;
+        document.head.appendChild(styleElement);
 
-    // Add text
-    const messageText = document.createElement('span');
-    messageText.textContent = message;
-    messageText.style.cssText = `
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    `;
+        // Configure the animated badge
+        badgeContainer.classList.add('animated-gradient');
 
-    // Append elements
-    messageBox.appendChild(icon);
-    messageBox.appendChild(messageText);
-    badgeContainer.appendChild(messageBox);
+        // Create message box
+        const messageBox = document.createElement('div');
+        messageBox.style.cssText = `
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: ${textColor};
+            font-size: 16px; /* Daha belirgin yazı boyutu */
+            font-weight: bold;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        `;
 
-    // Insert badge container
-    subjectElement.parentElement.insertBefore(badgeContainer, subjectElement);
+        // Add icon
+        const icon = document.createElement('img');
+        icon.src = iconUrl;
+        icon.alt = "Icon";
+        icon.style.cssText = `
+            width: 24px;
+            height: 24px;
+            object-fit: contain;
+        `;
+
+        // Add text
+        const messageText = document.createElement('span');
+        messageText.textContent = message;
+        messageText.style.cssText = `
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        `;
+
+        // Append elements
+        messageBox.appendChild(icon);
+        messageBox.appendChild(messageText);
+        badgeContainer.appendChild(messageBox);
+
+        // Insert badge container
+        subjectElement.parentElement.insertBefore(badgeContainer, subjectElement);
+    });
 }
 
 function generatePastelMessage(result, language) {
@@ -295,7 +293,6 @@ function generatePastelMessage(result, language) {
 
 
 async function checkEmailAuthentication(responseData, messageId) {
-    const language = getUserLanguage();
     const subjectElements = document.querySelectorAll('[data-thread-perm-id]');
     if (subjectElements.length === 0) {
         return;
@@ -323,7 +320,7 @@ async function checkEmailAuthentication(responseData, messageId) {
     };
 
     // Spam uyarısını render et
-    renderSpamWarning(result, subjectElement, language);
+    renderSpamWarning(result, subjectElement);
 
     // Mesaj sonuçlarını kaydet
     saveMessageResult(messageId, result);
@@ -346,10 +343,8 @@ function restoreSubject(messageId) {
 
         const subjectElement = subjectElements[0];
 
-        const language = getUserLanguage(); // Fetch the current language
-
         // Render the warning with the current language
-        renderSpamWarning(result, subjectElement, language);
+        renderSpamWarning(result, subjectElement);
     });
 }
 
