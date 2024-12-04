@@ -354,9 +354,12 @@ const urlPattern = /#(inbox|search|spam|trash|starred)\//;
 
 function observeUrlChanges() {
     let lastUrl = window.location.href;
-
+    let calling = 0
     const observer = new MutationObserver(() => {
         const currentUrl = window.location.href;
+        console.log("calling: ", calling);
+        calling += 1;
+
         if (currentUrl !== lastUrl) {
             lastUrl = currentUrl;
             if (urlPattern.test(currentUrl)) {
@@ -371,6 +374,36 @@ function observeUrlChanges() {
     observer.observe(document, { subtree: true, childList: true });
 }
 
+function cleanupOldMessages() {
+    const ONE_DAY = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+    const now = Date.now();
+
+    // Check if the current URL matches the Gmail URL pattern
+    if (!window.location.href.startsWith('https://mail.google.com/')) {
+        return;
+    }
+
+    chrome.storage.local.get('checkedMessages', (data) => {
+        const messages = data.checkedMessages || {};
+        const updatedMessages = {};
+
+        for (const [messageId, messageData] of Object.entries(messages)) {
+            if (now - messageData.createdAt < ONE_DAY) {
+                updatedMessages[messageId] = messageData;
+            }
+        }
+
+        chrome.storage.local.set({ checkedMessages: updatedMessages });
+    });
+}
+
 window.addEventListener('load', () => {
     observeUrlChanges();
+    setInterval(() => {
+        try {
+            cleanupOldMessages();
+        } catch (error) {
+                console.info("Extension context invalidated. Cleanup skipped.");
+        }
+    }, 30000);
 });
