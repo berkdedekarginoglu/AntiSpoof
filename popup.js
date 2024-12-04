@@ -240,6 +240,9 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log(`Language set to ${newLanguage.toUpperCase()}`);
     });
 
+    // Initial load of language setting
+    updateLanguageButton();
+
     // Reset statistics functionality
     const resetStatsButton = document.getElementById('reset-stats');
     resetStatsButton.addEventListener('click', () => {
@@ -255,12 +258,5 @@ document.addEventListener('DOMContentLoaded', () => {
             loadResults();
             console.log('Statistics reset successfully.');
         });
-    });
-
-    // Load initial language setting
-    chrome.storage.local.get('language', (data) => {
-        if (data.language) {
-            languageSelect.value = data.language;
-        }
     });
 });

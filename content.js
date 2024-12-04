@@ -143,6 +143,7 @@ function getScanResult(messageId, ikValue, userIndex) {
 function initializeLanguage() {
     if (!localStorage.getItem('language')) {
         const browserLanguage = navigator.language || navigator.userLanguage;
+        console.log('Browser language:', browserLanguage);
         const defaultLanguage = browserLanguage.startsWith('tr') ? 'tr' : 'en';
         localStorage.setItem('language', defaultLanguage);
     }
@@ -345,8 +346,10 @@ function restoreSubject(messageId) {
 
         const subjectElement = subjectElements[0];
 
-        // Uyarıyı render et
-        renderSpamWarning(result, subjectElement);
+        const language = getUserLanguage(); // Fetch the current language
+
+        // Render the warning with the current language
+        renderSpamWarning(result, subjectElement, language);
     });
 }
 
