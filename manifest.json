@@ -4,8 +4,7 @@
   "version": "1.0.0",
   "description": "Anti Spoof, SPF, DMARC ve DKIM doğrulama sonuçlarını Gmail üzerinde görmenizi sağlar.",
   "permissions": [
-    "activeTab",
-    "scripting"
+    "storage"
   ],
   "host_permissions": [
     "https://mail.google.com/*"
@@ -20,5 +19,15 @@
       "matches": ["https://mail.google.com/*"],
       "js": ["content.js"]
     }
-  ]
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["img/*"],
+      "matches": ["<all_urls>"]
+    }
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": "icon-48.png"
+  }
 }

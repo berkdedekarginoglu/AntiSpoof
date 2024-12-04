@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Anti Spoof - Exclude Domains</title>
+    <script src="chart.js"></script>
+    <script src="popup.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            width: 400px;
+            height: 600px;
+            background: linear-gradient(to bottom, #2c3e50, #4f4f4f 70%, #3a3a3a 90%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        
+        h2 {
+            margin: 10px 0;
+            font-size: 20px;
+        }
+        
+        canvas {
+            width: 100% !important;
+            height: auto !important;
+            margin-bottom: 20px;
+        }
+        
+        .domain-list {
+            flex: 1;
+            overflow-y: auto;
+            width: 100%;
+            margin-bottom: 10px;
+            padding: 10px;
+            border: 1px solid #555;
+            border-radius: 8px;
+            background-color: #2f3b4a;
+            max-height: 180px;
+        }
+        
+        .domain-list p {
+            margin: 5px 0;
+            font-size: 14px;
+            color: #ddd;
+        }
+        
+        .input-group {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            margin-bottom: 10px;
+        }
+        
+        input[type="text"] {
+            flex: 1;
+            padding: 8px;
+            font-size: 14px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            margin-right: 10px;
+        }
+        
+        button {
+            padding: 8px 12px;
+            font-size: 14px;
+            color: white;
+            background-color: transparent;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        
+        button:hover {
+            background-color: #3498db;
+        }
+        
+        #footer {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            text-align: center;
+            padding: 10px;
+            font-size: 12px;
+            color: #bbb;
+            background-color: #3a3a3a;
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        .top-buttons {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            margin-bottom: 10px;
+        }
+        
+        .language-button {
+            position: absolute;
+            top: 2px;
+            right: 2px;
+        }
+        
+        .language-button button {
+            padding: 5px 10px;
+            font-size: 11px;
+            color: white;
+            background-color: transparent;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        
+        .language-button button:hover {
+            background-color: #2980b9;
+        }
+    </style>
+</head>
+<body>
+<div class="top-buttons">
+    <button id="settings-button">Settings</button>
+    <button id="developers-button">Developers</button>
+</div>
+
+<div class="language-button">
+    <button id="language-button"></button>
+</div>
+
+<canvas id="piechart"></canvas>
+<h2>Exclude Domains</h2>
+
+<div class="domain-list" id="excluded-domains">
+    <p>No domains excluded yet.</p>
+</div>
+
+<div class="input-group" id="domain-input-group">
+    <input type="text" id="domain-input" placeholder="Enter domain or subdomain">
+    <button id="add-domain">Add</button>
+</div>
+
+<div id="settings-section" class="hidden">
+    <h2>Settings</h2>
+    <button id="reset-stats">Reset Statistics</button>
+</div>
+
+<div id="developers-section" class="hidden">
+    <h2>Developers</h2>
+    <!-- Add developers content here -->
+</div>
+
+<div id="footer">
+    © 2024 Anti Spoof Extension
+</div>
+</body>
+</html>
