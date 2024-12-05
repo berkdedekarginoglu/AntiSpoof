@@ -39,7 +39,7 @@ module.exports = {
         popup: './popup.js'
     },
     output: {
-        filename: '[name].bundle.js', // Output bundle files
+        filename: '[name].js', // Output bundle files
         path: path.resolve(__dirname, 'dist') // Output directory
     },
     module: {

@@ -245,6 +245,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 document.querySelector('.team-description').textContent = texts.team_description;
                 document.querySelector('.coffee-link').textContent = texts.coffee;
                 document.querySelector('#about-us-section h2').textContent = texts.meet_the_team;
+
+                // Update remove button text for each excluded domain
+                const removeButtons = excludedDomainsContainer.querySelectorAll('button');
+                removeButtons.forEach(button => {
+                    button.textContent = texts.remove;
+                });
             });
     }
 
