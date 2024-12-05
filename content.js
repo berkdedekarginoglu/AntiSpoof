@@ -378,11 +378,6 @@ function cleanupOldMessages() {
     const ONE_DAY = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
     const now = Date.now();
 
-    // Check if the current URL matches the Gmail URL pattern
-    if (!window.location.href.startsWith('https://mail.google.com/')) {
-        return;
-    }
-
     chrome.storage.local.get('checkedMessages', (data) => {
         const messages = data.checkedMessages || {};
         const updatedMessages = {};
@@ -405,5 +400,5 @@ window.addEventListener('load', () => {
         } catch (error) {
                 console.info("Extension context invalidated. Cleanup skipped.");
         }
-    }, 30000);
+    }, 1800000); // 30 minutes in milliseconds
 });
