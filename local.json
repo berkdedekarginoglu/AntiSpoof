@@ -16,7 +16,12 @@
     "spf_fail": "SPF Fail",
     "team_description": "We’re two passionate offensive security engineers on a mission to make things easier and more efficient, without breaking anything (for hackers and humans alike). 🚀",
     "coffee": "☕ Buy us a Coffee",
-    "meet_the_team": "Meet the Team"
+    "meet_the_team": "Meet the Team",
+    "reliable": "This sender has been classified as reliable.",
+    "dangerous": "This sender has been flagged as dangerous. Identity verification has completely failed.",
+    "suspicious": "This sender has been classified as suspicious in terms of reliability.",
+    "partially_reliable": "This sender has been classified as partially reliable.",
+    "unverified": "The sender's identity could not be verified. Missing or incorrect information detected."
   },
   "tr": {
     "home": "Anasayfa",
@@ -35,6 +40,11 @@
     "spf_fail": "SPF Başarısız",
     "team_description": "Biz iki tutkulu ofansif güvenlik mühendisiyiz ve amacımız bir şeyleri kırmadan daha kolay ve verimli hale getirmek (hem hackerlar hem de insanlar için).  🚀",
     "coffee": "☕ Bize bir Kahve Ismarla",
-    "meet_the_team": "Ekibi Tanıyın"
+    "meet_the_team": "Ekibi Tanıyın",
+    "reliable": "Bu gönderici güvenilir olarak değerlendirilmiştir.",
+    "dangerous": "Bu gönderici tehlikeli olarak işaretlenmiştir. Kimlik doğrulama tamamen başarısız olmuştur.",
+    "suspicious": "Bu gönderici güvenilirlik açısından şüpheli olarak değerlendirilmiştir.",
+    "partially_reliable": "Bu gönderici kısmen güvenilir olarak değerlendirilmiştir.",
+    "unverified": "Bu göndericinin kimliği doğrulanamamıştır. Eksik veya hatalı bilgiler tespit edilmiştir."
   }
 }

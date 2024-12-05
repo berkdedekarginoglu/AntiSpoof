@@ -152,143 +152,144 @@ function getUserLanguage(callback) {
 
 function renderSpamWarning(result, subjectElement) {
     getUserLanguage((language) => {
-        console.log("language: ", language);
-
-        // Remove previous badges
-        const existingBadgeContainer = subjectElement.previousElementSibling;
-        if (existingBadgeContainer) {
-            existingBadgeContainer.remove();
-        }
-
-        // Badge Container
-        const badgeContainer = document.createElement('div');
-        badgeContainer.style.cssText = `
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-bottom: 8px;
-            padding: 12px 20px;
-            border-radius: 8px;
-            font-family: Arial, sans-serif;
-            position: relative;
-            width: fit-content; /* Dinamik genişlik */
-            max-width: 100%; /* Ebeveyn genişliği aşılmasın */
-            box-sizing: border-box;
-            animation: gradient-flow 6s ease infinite; /* Hareketli gradient */
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
-        `;
-
-        // Determine message, color, and icon based on result
-        const assessment = generatePastelMessage(result, language);
-        const { message, color, iconUrl, textColor } = assessment;
-
-        // Inject animation styles dynamically
-        const styleElement = document.createElement("style");
-        styleElement.textContent = `
-            @keyframes gradient-flow {
-                0% {
-                    background-position: 0% 50%;
+        fetch(chrome.runtime.getURL('local.json'))
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`Network response was not ok: ${response.statusText}`);
                 }
-                50% {
-                    background-position: 100% 50%;
+                const contentType = response.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    throw new TypeError(`Expected JSON, but received: ${contentType}`);
                 }
-                100% {
-                    background-position: 0% 50%;
+                return response.json();
+            })
+            .then(translations => {
+                const { message, color, iconUrl } = getMessage(result, language, translations);
+
+                // Remove previous badges
+                const existingBadgeContainer = subjectElement.previousElementSibling;
+                if (existingBadgeContainer) {
+                    existingBadgeContainer.remove();
                 }
-            }
 
-            .animated-gradient {
-                background: ${color};
-                background-size: 300% 300%;
-            }
-        `;
-        document.head.appendChild(styleElement);
+                // Badge Container
+                const badgeContainer = document.createElement('div');
+                badgeContainer.style.cssText = `
+                    display: flex;
+                    align-items: center;
+                    gap: 10px;
+                    margin-bottom: 8px;
+                    padding: 12px 20px;
+                    border-radius: 8px;
+                    font-family: Arial, sans-serif;
+                    position: relative;
+                    width: fit-content;
+                    max-width: 100%;
+                    box-sizing: border-box;
+                    animation: gradient-flow 6s ease infinite;
+                    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+                `;
 
-        // Configure the animated badge
-        badgeContainer.classList.add('animated-gradient');
+                // Inject animation styles dynamically
+                const styleElement = document.createElement("style");
+                styleElement.textContent = `
+                    @keyframes gradient-flow {
+                        0% {
+                            background-position: 0% 50%;
+                        }
+                        50% {
+                            background-position: 100% 50%;
+                        }
+                        100% {
+                            background-position: 0% 50%;
+                        }
+                    }
 
-        // Create message box
-        const messageBox = document.createElement('div');
-        messageBox.style.cssText = `
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            color: ${textColor};
-            font-size: 16px; /* Daha belirgin yazı boyutu */
-            font-weight: bold;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        `;
+                    .animated-gradient {
+                        background: ${color};
+                        background-size: 300% 300%;
+                    }
+                `;
+                document.head.appendChild(styleElement);
 
-        // Add icon
-        const icon = document.createElement('img');
-        icon.src = iconUrl;
-        icon.alt = "Icon";
-        icon.style.cssText = `
-            width: 24px;
-            height: 24px;
-            object-fit: contain;
-        `;
+                // Configure the animated badge
+                badgeContainer.classList.add('animated-gradient');
 
-        // Add text
-        const messageText = document.createElement('span');
-        messageText.textContent = message;
-        messageText.style.cssText = `
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        `;
+                // Create message box
+                const messageBox = document.createElement('div');
+                messageBox.style.cssText = `
+                    display: flex;
+                    align-items: center;
+                    gap: 10px;
+                    color: #FFFFFF;
+                    font-size: 16px;
+                    font-weight: bold;
+                    white-space: nowrap;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                `;
 
-        // Append elements
-        messageBox.appendChild(icon);
-        messageBox.appendChild(messageText);
-        badgeContainer.appendChild(messageBox);
+                // Add icon
+                const icon = document.createElement('img');
+                icon.src = iconUrl;
+                icon.alt = "Icon";
+                icon.style.cssText = `
+                    width: 24px;
+                    height: 24px;
+                    object-fit: contain;
+                `;
 
-        // Insert badge container
-        subjectElement.parentElement.insertBefore(badgeContainer, subjectElement);
+                // Add text
+                const messageText = document.createElement('span');
+                messageText.textContent = message;
+                messageText.style.cssText = `
+                    white-space: nowrap;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                `;
+
+                // Append elements
+                messageBox.appendChild(icon);
+                messageBox.appendChild(messageText);
+                badgeContainer.appendChild(messageBox);
+
+                // Insert badge container
+                subjectElement.parentElement.insertBefore(badgeContainer, subjectElement);
+            })
+            .catch(error => {
+                console.error('Error fetching translations:', error);
+            });
     });
 }
 
-function generatePastelMessage(result, language) {
+function getMessage(result, language, translations) {
     let message = "";
     let color = "";
-    const textColor = "#FFFFFF"; // Beyaz metin
     let iconUrl = "";
 
     if (result.spf === "PASS" && result.dmarc === "PASS" && result.dkim === "PASS") {
-        message = language === "tr"
-            ? "Bu gönderici güvenilir olarak değerlendirilmiştir."
-            : "This sender has been classified as reliable.";
+        message = translations[language].reliable;
         color = "linear-gradient(45deg, #A3E635, #6DCB20, #45B200, #6DCB20, #A3E635)";
         iconUrl = chrome.runtime.getURL("img/verified.png");
     } else if (result.dkim === "FAIL") {
-        message = language === "tr"
-            ? "Bu gönderici tehlikeli olarak işaretlenmiştir. Kimlik doğrulama tamamen başarısız olmuştur."
-            : "This sender has been flagged as dangerous. Identity verification has completely failed.";
+        message = translations[language].dangerous;
         color = "linear-gradient(45deg, #FF4500, #DC143C, #B22222, #DC143C, #FF4500)";
         iconUrl = chrome.runtime.getURL("img/block.png");
     } else if (result.dkim === "MISSING") {
-        message = language === "tr"
-            ? "Bu gönderici güvenilirlik açısından şüpheli olarak değerlendirilmiştir."
-            : "This sender has been classified as suspicious in terms of reliability.";
+        message = translations[language].suspicious;
         color = "linear-gradient(45deg, #FF4500, #DC143C, #B22222, #DC143C, #FF4500)";
         iconUrl = chrome.runtime.getURL("img/caution.png");
     } else if (result.dmarc === "MISSING" || result.dmarc === "FAIL") {
-            message = language === "tr"
-            ? "Bu gönderici kısmen güvenilir olarak değerlendirilmiştir."
-            : "This sender has been classified as partially reliable.";
-            color = "linear-gradient(45deg, #FFA500, #FF8C00, #CC7000, #FF8C00, #FFA500)";
-            iconUrl = chrome.runtime.getURL("img/yellowShield.png");
-    }else {
-        message = language === "tr"
-            ? "Bu göndericinin kimliği doğrulanamamıştır. Eksik veya hatalı bilgiler tespit edilmiştir."
-            : "The sender's identity could not be verified. Missing or incorrect information detected.";
+        message = translations[language].partially_reliable;
+        color = "linear-gradient(45deg, #FFA500, #FF8C00, #CC7000, #FF8C00, #FFA500)";
+        iconUrl = chrome.runtime.getURL("img/yellowShield.png");
+    } else {
+        message = translations[language].unverified;
         color = "linear-gradient(45deg, #333333, #555555, #777777, #000000)";
         iconUrl = chrome.runtime.getURL("img/unknown.png");
     }
 
-    return { message, color, iconUrl, textColor };
+    return { message, color, iconUrl };
 }
 
 
@@ -354,11 +355,8 @@ const urlPattern = /#(inbox|search|spam|trash|starred)\//;
 
 function observeUrlChanges() {
     let lastUrl = window.location.href;
-    let calling = 0
     const observer = new MutationObserver(() => {
         const currentUrl = window.location.href;
-        console.log("calling: ", calling);
-        calling += 1;
 
         if (currentUrl !== lastUrl) {
             lastUrl = currentUrl;
