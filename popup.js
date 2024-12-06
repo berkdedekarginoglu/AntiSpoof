@@ -1,19 +1,41 @@
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     const canvas = document.getElementById('piechart');
     const ctx = canvas.getContext('2d');
     let barChart = null;
+    let translationsCache = null;
 
     // Arka plan gradienti
     canvas.style.background = `linear-gradient(to bottom, #2c3e50, #4f4f4f)`;
 
+    const addDomainButton = document.getElementById('add-domain');
+    const domainInput = document.getElementById('domain-input');
+    const excludedDomainsContainer = document.getElementById('excluded-domains');
+    const domainInputGroup = document.getElementById('domain-input-group');
+    const excludeDomainsTitle = document.querySelector('h2');
+    const homeButton = document.getElementById('home-button');
+    const aboutUsButton = document.getElementById('about-us-button');
+    const aboutUsSection = document.getElementById('about-us-section');
+    const languageButton = document.getElementById('language-button');
+    const resetStatsButton = document.getElementById('reset-stats');
+
+    // Bu fonksiyon local.json'u bir kez yükler ve hafızada saklar
+    async function loadTranslationsFile() {
+        if (!translationsCache) {
+            const response = await fetch('local.json');
+            translationsCache = await response.json();
+        }
+        return translationsCache;
+    }
+
     function drawChart(results) {
+        const maxVal = Math.max(results.success, results.dmarc_fail, results.dkim_fail, results.spf_fail);
         const data = {
             labels: ['Success', 'DMARC Fail', 'DKIM Fail', 'SPF Fail'],
             datasets: [{
                 label: 'Verification Results',
                 data: [results.success, results.dmarc_fail, results.dkim_fail, results.spf_fail],
-                backgroundColor: ['#27ae60', '#c0392b', '#f39c12', '#2980b9'], // Colors
-                borderColor: ['#1e8449', '#922b21', '#d68910', '#21618c'], // Border colors
+                backgroundColor: ['#27ae60', '#c0392b', '#f39c12', '#2980b9'],
+                borderColor: ['#1e8449', '#922b21', '#d68910', '#21618c'],
                 borderWidth: 1
             }]
         };
@@ -57,7 +79,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     grid: {
                         color: 'rgba(255, 255, 255, 0.2)',
                     },
-                    suggestedMax: Math.max(results.success, results.dmarc_fail, results.dkim_fail, results.spf_fail) * 1.1 // Set max value to 110% of the highest count
+                    suggestedMax: maxVal * 1.1
                 },
             },
         };
@@ -87,12 +109,15 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Excluded domains functionality
-    const addDomainButton = document.getElementById('add-domain');
-    const domainInput = document.getElementById('domain-input');
-    const excludedDomainsContainer = document.getElementById('excluded-domains');
-    const domainInputGroup = document.getElementById('domain-input-group');
-    const excludeDomainsTitle = document.querySelector('h2');
+    function isValidDomain(domain) {
+        // Extract domain from email if necessary
+        if (domain.includes('@')) {
+            domain = domain.split('@')[1];
+        }
+
+        const domainPattern = /^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+        return domainPattern.test(domain) ? domain : null;
+    }
 
     function addDomain() {
         let domain = domainInput.value.trim();
@@ -101,91 +126,83 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        // Extract domain from email if necessary
-        if (domain.includes('@')) {
-            domain = domain.split('@')[1];
-        }
-
-        // Validate domain format
-        const domainPattern = /^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-        if (!domainPattern.test(domain)) {
+        domain = isValidDomain(domain);
+        if (!domain) {
             alert('Please enter a valid domain!');
             return;
         }
 
         chrome.storage.local.get('excludedDomains', (data) => {
             const excludedDomains = data.excludedDomains || [];
-            if (excludedDomains.includes(domain)) {
+            if (excludedDomains.some(d => d.domain === domain)) {
                 alert('Domain is already excluded!');
                 return;
             }
 
-            excludedDomains.push(domain);
+            excludedDomains.push({ domain, isRemovable: true });
             chrome.storage.local.set({ excludedDomains }, () => {
-                domainInput.value = ''; // Clear the input
-                updateExcludedDomainsUI(); // Refresh the UI
+                domainInput.value = '';
+                updateExcludedDomainsUI();
                 console.log(`Domain ${domain} added successfully.`);
             });
         });
     }
 
     addDomainButton.addEventListener('click', addDomain);
-
     domainInput.addEventListener('keypress', (event) => {
         if (event.key === 'Enter') {
             addDomain();
         }
     });
 
-    function updateExcludedDomainsUI() {
-        chrome.storage.local.get('excludedDomains', (data) => {
-            const excludedDomains = data.excludedDomains || [];
-            excludedDomainsContainer.innerHTML = '';
+    async function getUserLanguage() {
+        return new Promise((resolve) => {
+            chrome.storage.local.get('language', (data) => {
+                resolve(data.language || 'tr');
+            });
+        });
+    }
 
-            if (excludedDomains.length === 0) {
-                excludedDomainsContainer.innerHTML = '<p>No domains excluded yet.</p>';
-                return;
-            }
+    async function updateExcludedDomainsUI() {
+        const data = await new Promise((resolve) => {
+            chrome.storage.local.get('excludedDomains', resolve);
+        });
+        const excludedDomains = data.excludedDomains || [];
+        excludedDomainsContainer.innerHTML = '';
 
-            excludedDomains.forEach(domain => {
-                const domainItem = document.createElement('div');
-                domainItem.style.display = 'flex';
-                domainItem.style.justifyContent = 'space-between';
-                domainItem.style.alignItems = 'center';
-                domainItem.style.marginBottom = '5px';
-                domainItem.style.padding = '5px';
-                domainItem.style.border = '1px solid #555';
-                domainItem.style.borderRadius = '4px';
-                domainItem.style.backgroundColor = '#2f3b4a';
-                domainItem.style.color = '#ddd';
+        const language = await getUserLanguage();
+        const translations = await loadTranslationsFile();
+        const texts = translations[language];
 
-                const domainText = document.createElement('span');
-                domainText.textContent = domain;
+        if (excludedDomains.length === 0) {
+            excludedDomainsContainer.innerHTML = `<p>${texts.no_domains_excluded || 'No domains excluded yet.'}</p>`;
+            return;
+        }
 
+        excludedDomains.forEach(({ domain, isRemovable }) => {
+            // Artık inline stil yok
+            const domainItem = document.createElement('div');
+            const domainText = document.createElement('span');
+            domainText.textContent = domain;
+            domainItem.appendChild(domainText);
+
+            if (isRemovable) {
                 const removeButton = document.createElement('button');
-                removeButton.textContent = 'Remove';
-                removeButton.style.backgroundColor = '#e74c3c';
-                removeButton.style.color = '#fff';
-                removeButton.style.border = 'none';
-                removeButton.style.borderRadius = '4px';
-                removeButton.style.padding = '4px 8px';
-                removeButton.style.cursor = 'pointer';
-
+                removeButton.textContent = texts.remove;
                 removeButton.addEventListener('click', () => {
                     removeExcludedDomain(domain);
                 });
-
-                domainItem.appendChild(domainText);
                 domainItem.appendChild(removeButton);
-                excludedDomainsContainer.appendChild(domainItem);
-            });
+            }
+
+            excludedDomainsContainer.appendChild(domainItem);
         });
     }
 
     function removeExcludedDomain(domain) {
         chrome.storage.local.get('excludedDomains', (data) => {
             const excludedDomains = data.excludedDomains || [];
-            const updatedDomains = excludedDomains.filter(d => d !== domain);
+            const updatedDomains = excludedDomains.filter(d => d.domain !== domain);
             chrome.storage.local.set({ excludedDomains: updatedDomains }, () => {
                 console.log(`Domain ${domain} removed.`);
                 updateExcludedDomainsUI();
@@ -193,15 +210,37 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Initial load of results and excluded domains
-    loadResults();
-    updateExcludedDomainsUI();
+    async function applyTranslations() {
+        const language = await getUserLanguage();
+        const translations = await loadTranslationsFile();
+        const texts = translations[language];
 
-    // Toggle sections
-    const homeButton = document.getElementById('home-button');
-    const aboutUsButton = document.getElementById('about-us-button');
-    const excludeDomainsSection = document.getElementById('excluded-domains');
-    const aboutUsSection = document.getElementById('about-us-section');
+        homeButton.textContent = texts.home;
+        aboutUsButton.textContent = texts.about_us;
+        addDomainButton.textContent = texts.add;
+        excludeDomainsTitle.textContent = texts.exclude_domains;
+        domainInput.placeholder = texts.enter_domain;
+
+        document.querySelector('.team-description').textContent = texts.team_description;
+        document.querySelector('.coffee-link').textContent = texts.coffee;
+        document.querySelector('#about-us-section h2').textContent = texts.meet_the_team;
+
+        // Eğer hiç domain yoksa mesaj güncelle
+        const data = await new Promise((resolve) => {
+            chrome.storage.local.get('excludedDomains', resolve);
+        });
+        const excludedDomains = data.excludedDomains || [];
+        if (excludedDomains.length === 0) {
+            excludedDomainsContainer.innerHTML = `<p>${texts.no_domains_excluded}</p>`;
+        }
+
+        // Domain remove butonları güncelle
+        excludedDomainsContainer.querySelectorAll('button').forEach(button => {
+            button.textContent = texts.remove;
+        });
+
+        languageButton.textContent = language.toUpperCase();
+    }
 
     function showSection(sectionToShow, sectionToHide) {
         sectionToShow.classList.remove('hidden');
@@ -209,88 +248,32 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     homeButton.addEventListener('click', () => {
-        showSection(excludeDomainsSection, aboutUsSection);
+        showSection(excludedDomainsContainer, aboutUsSection);
         domainInputGroup.classList.remove('hidden');
         excludeDomainsTitle.classList.remove('hidden');
     });
 
     aboutUsButton.addEventListener('click', () => {
         if (!aboutUsSection.classList.contains('hidden')) {
-            showSection(excludeDomainsSection, aboutUsSection);
+            showSection(excludedDomainsContainer, aboutUsSection);
             domainInputGroup.classList.remove('hidden');
             excludeDomainsTitle.classList.remove('hidden');
         } else {
-            showSection(aboutUsSection, excludeDomainsSection);
+            showSection(aboutUsSection, excludedDomainsContainer);
             domainInputGroup.classList.add('hidden');
             excludeDomainsTitle.classList.add('hidden');
         }
     });
 
-    const languageButton = document.getElementById('language-button');
-
-    // Language settings
-    function loadTranslations(language) {
-        fetch('local.json')
-            .then(response => response.json())
-            .then(translations => {
-                const texts = translations[language];
-                homeButton.textContent = texts.home;
-                aboutUsButton.textContent = texts.about_us;
-                addDomainButton.textContent = texts.add;
-                excludeDomainsTitle.textContent = texts.exclude_domains;
-                domainInput.placeholder = texts.enter_domain;
-                if (excludedDomainsContainer.children.length === 0) {
-                    excludedDomainsContainer.innerHTML = `<p>${texts.no_domains_excluded}</p>`;
-                }
-                document.querySelector('.team-description').textContent = texts.team_description;
-                document.querySelector('.coffee-link').textContent = texts.coffee;
-                document.querySelector('#about-us-section h2').textContent = texts.meet_the_team;
-
-                // Update remove button text for each excluded domain
-                const removeButtons = excludedDomainsContainer.querySelectorAll('button');
-                removeButtons.forEach(button => {
-                    button.textContent = texts.remove;
-                });
-            });
-    }
-
-    function updateLanguageButton() {
-        chrome.storage.local.get('language', (data) => {
-            const currentLanguage = data.language || 'tr';
-            languageButton.textContent = currentLanguage.toUpperCase();
-            loadTranslations(currentLanguage);
-
-            // Update the no domains excluded message if the container is empty
-            chrome.storage.local.get('excludedDomains', (data) => {
-                const excludedDomains = data.excludedDomains || [];
-                if (excludedDomains.length === 0) {
-                    fetch('local.json')
-                        .then(response => response.json())
-                        .then(translations => {
-                            const texts = translations[currentLanguage];
-                            excludedDomainsContainer.innerHTML = `<p>${texts.no_domains_excluded}</p>`;
-                        });
-                }
-            });
-        });
-    }
-
-    languageButton.addEventListener('click', () => {
-        chrome.storage.local.get('language', (data) => {
-            const currentLanguage = data.language || 'tr';
-            const newLanguage = currentLanguage === 'tr' ? 'en' : 'tr';
-            chrome.storage.local.set({ language: newLanguage }, () => {
-                updateLanguageButton();
-                console.log(`Language set to ${newLanguage.toUpperCase()}`);
-            });
+    languageButton.addEventListener('click', async () => {
+        const language = await getUserLanguage();
+        const newLanguage = language === 'tr' ? 'en' : 'tr';
+        chrome.storage.local.set({ language: newLanguage }, async () => {
+            await applyTranslations();
+            console.log(`Language set to ${newLanguage.toUpperCase()}`);
         });
     });
 
-    // Initial load of language setting
-    updateLanguageButton();
-
-    // Reset statistics functionality
-    const resetStatsButton = document.getElementById('reset-stats');
     resetStatsButton.addEventListener('click', () => {
         chrome.storage.local.set({
             results: {
@@ -305,4 +288,9 @@ document.addEventListener('DOMContentLoaded', () => {
             console.log('Statistics reset successfully.');
         });
     });
+
+    // İlk yüklemeler
+    loadResults();
+    await updateExcludedDomainsUI();
+    await applyTranslations();
 });

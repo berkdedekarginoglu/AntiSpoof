@@ -1,85 +1,140 @@
+let cachedExcludedDomains = null;
+let cachedLanguage = null;
+let cachedTranslations = null;
+let cachedCheckedMessages = null;
 
-function initializeStorage() {
-    // Initialize results object if not present
-    chrome.storage.local.get(['results', 'checkedMessages', 'excludedDomains', 'language'], (data) => {
-        if (!data.results) {
-            chrome.storage.local.set({
-                results: {
-                    scan: 0,
-                    success: 0,
-                    dmarc_fail: 0,
-                    dkim_fail: 0,
-                    spf_fail: 0
-                }
-            });
-        }
-        if (!data.checkedMessages) {
-            chrome.storage.local.set({
-                checkedMessages: {}
-            });
-        }
-        if (!data.excludedDomains) {
-            chrome.storage.local.set({ excludedDomains: [] });
-        }
-        if (!data.language) {
-            initializeLanguage();
-        }
+// Helper functions for storage (to use async/await)
+function storageGet(keys) {
+    return new Promise(resolve => {
+        chrome.storage.local.get(keys, resolve);
     });
+}
+function storageSet(items) {
+    return new Promise(resolve => {
+        chrome.storage.local.set(items, resolve);
+    });
+}
+
+// Load translations once
+async function loadTranslations() {
+    if (!cachedTranslations) {
+        const response = await fetch(chrome.runtime.getURL('local.json'));
+        if (!response.ok) throw new Error(`Error fetching translations: ${response.statusText}`);
+        cachedTranslations = await response.json();
+    }
+    return cachedTranslations;
+}
+
+// Initialize language only if not present
+async function initializeLanguage() {
+    const data = await storageGet('language');
+    if (!data.language) {
+        const browserLanguage = navigator.language || navigator.userLanguage;
+        const defaultLanguage = browserLanguage && browserLanguage.startsWith('tr') ? 'tr' : 'en';
+        await storageSet({ language: defaultLanguage });
+        cachedLanguage = defaultLanguage;
+    } else {
+        cachedLanguage = data.language;
+    }
+}
+
+// Get user language from cache or storage
+async function getUserLanguage() {
+    if (cachedLanguage) return cachedLanguage;
+    const data = await storageGet('language');
+    cachedLanguage = data.language || 'tr';
+    return cachedLanguage;
+}
+
+// Load excluded domains if not cached
+async function loadExcludedDomains() {
+    if (cachedExcludedDomains !== null) return cachedExcludedDomains;
+    const data = await storageGet('excludedDomains');
+    if (data.excludedDomains) {
+        cachedExcludedDomains = data.excludedDomains;
+        return cachedExcludedDomains;
+    } else {
+        // If not found in storage, load default from excluded_domains.json
+        const response = await fetch(chrome.runtime.getURL('excluded_domains.json'));
+        const jsonData = await response.json();
+        const excludedDomains = jsonData.domains.map(domain => ({ domain, isRemovable: false }));
+        await storageSet({ excludedDomains });
+        cachedExcludedDomains = excludedDomains;
+        return cachedExcludedDomains;
+    }
+}
+
+async function initializeStorage() {
+    const data = await storageGet(['results', 'checkedMessages', 'excludedDomains', 'language']);
+    if (!data.results) {
+        await storageSet({
+            results: {
+                scan: 0,
+                success: 0,
+                dmarc_fail: 0,
+                dkim_fail: 0,
+                spf_fail: 0
+            }
+        });
+    }
+
+    if (!data.checkedMessages) {
+        await storageSet({ checkedMessages: {} });
+    }
+
+    await loadExcludedDomains(); // This sets cachedExcludedDomains
+    await initializeLanguage(); // This sets cachedLanguage
 }
 
 initializeStorage();
 
-
-function isMessageChecked(messageId) {
-    return new Promise((resolve) => {
-        chrome.storage.local.get('checkedMessages', (data) => {
-            const messages = data.checkedMessages || {};
-            resolve(!!messages[messageId]);
-        });
-    });
+// Check if message was previously checked
+async function isMessageChecked(messageId) {
+    if (cachedCheckedMessages === null) {
+        const data = await storageGet('checkedMessages');
+        cachedCheckedMessages = data.checkedMessages || {};
+    }
+    return !!cachedCheckedMessages[messageId];
 }
 
-function isDomainExcluded(domain) {
-    return new Promise((resolve) => {
-        chrome.storage.local.get('excludedDomains', (data) => {
-            const domains = data.excludedDomains || [];
-            resolve(domains.includes(domain));
-        });
-    });
+// Check if domain is excluded (use cachedExcludedDomains)
+async function isDomainExcluded(domain) {
+    const excludedDomains = await loadExcludedDomains();
+    return excludedDomains.some(d => d.domain === domain);
 }
 
-function saveMessageResult(messageId, result) {
-    chrome.storage.local.get('checkedMessages', (data) => {
-        const messages = data.checkedMessages || {};
-        messages[messageId] = {
-            result: result,
-            createdAt: Date.now()
-        };
-        chrome.storage.local.set({ checkedMessages: messages });
-    });
+async function saveMessageResult(messageId, result) {
+    const data = await storageGet('checkedMessages');
+    const messages = data.checkedMessages || {};
+    messages[messageId] = {
+        result: result,
+        createdAt: Date.now()
+    };
+    await storageSet({ checkedMessages: messages });
+    // Update cache
+    cachedCheckedMessages = messages;
 }
 
-function updateResults(result) {
-    chrome.storage.local.get('results', (data) => {
-        const results = data.results || {
-            scan: 0,
-            success: 0,
-            dmarc_fail: 0,
-            dkim_fail: 0,
-            spf_fail: 0
-        };
+async function updateResults(result) {
+    const data = await storageGet('results');
+    const results = data.results || {
+        scan: 0,
+        success: 0,
+        dmarc_fail: 0,
+        dkim_fail: 0,
+        spf_fail: 0
+    };
 
-        results.scan += 1;
-        if (result.spf === "PASS" && result.dmarc === "PASS" && result.dkim === "PASS") {
-            results.success += 1;
-        } else {
-            if (result.spf === "FAIL" || result.spf === "MISSING") results.spf_fail += 1;
-            if (result.dmarc === "FAIL" || result.dmarc === "MISSING") results.dmarc_fail += 1;
-            if (result.dkim === "FAIL" || result.dkim === "MISSING") results.dkim_fail += 1;
-        }
+    results.scan += 1;
+    if (result.spf === "PASS" && result.dmarc === "PASS" && result.dkim === "PASS") {
+        results.success += 1;
+    } else {
+        if (result.spf === "FAIL" || result.spf === "MISSING") results.spf_fail += 1;
+        if (result.dmarc === "FAIL" || result.dmarc === "MISSING") results.dmarc_fail += 1;
+        if (result.dkim === "FAIL" || result.dkim === "MISSING") results.dkim_fail += 1;
+    }
 
-        chrome.storage.local.set({ results });
-    });
+    await storageSet({ results });
 }
 
 function getUserIndexFromUrl() {
@@ -94,13 +149,11 @@ async function checkMessageId() {
     const senderElement = document.querySelector('span.gD[email][name][data-hovercard-id]');
 
     if (messageIdElement && ikElement && senderElement) {
-        let senderDomain = senderElement.getAttribute('email').split('@')[1]
+        const senderEmail = senderElement.getAttribute('email');
+        const senderDomain = senderEmail.split('@')[1];
 
-        const isDomainExist = await isDomainExcluded(senderDomain);
-
-        if (isDomainExist) {
-            return;
-        }
+        const isExcluded = await isDomainExcluded(senderDomain);
+        if (isExcluded) return;
 
         let messageId = messageIdElement.getAttribute('data-message-id');
         messageId = messageId.replace('#', '');
@@ -110,24 +163,19 @@ async function checkMessageId() {
         let ikValue = ikMatch ? ikMatch[1] : null;
 
         const userIndex = getUserIndexFromUrl();
+        if (!ikValue || !userIndex) return;
 
-        if (!ikValue || !userIndex) {
-            return;
+        const exists = await isMessageChecked(messageId);
+        if (exists) {
+            restoreSubject(messageId);
+        } else {
+            getScanResult(messageId, ikValue, userIndex);
         }
-
-        const isMessageExist = await isMessageChecked(messageId);
-        if (isMessageExist) {
-            restoreSubject(messageId);} 
-        else{
-                getScanResult(messageId, ikValue, userIndex);
-            }
-       
     }
 }
 
 function getScanResult(messageId, ikValue, userIndex) {
     const requestUrl = `https://mail.google.com/mail/u/${userIndex}/?ik=${ikValue}&view=om&permmsgid=${messageId}`;
-
     fetch(requestUrl)
         .then(response => response.text())
         .then(data => {
@@ -136,220 +184,143 @@ function getScanResult(messageId, ikValue, userIndex) {
         .catch(() => {});
 }
 
-// Function to initialize the language setting
-function initializeLanguage() {
-    const browserLanguage = navigator.language || navigator.userLanguage;
-    const defaultLanguage = browserLanguage.startsWith('tr') ? 'tr' : 'en';
-    chrome.storage.local.set({ language: defaultLanguage });
-}
+async function renderSpamWarning(result, subjectElement) {
+    const language = await getUserLanguage();
+    const translations = await loadTranslations();
+    const { message, className, iconUrl, gradientColor } = getMessage(result, language, translations);
 
-// Function to get the user language from localStorage
-function getUserLanguage(callback) {
-    chrome.storage.local.get('language', (data) => {
-        callback(data.language || 'tr'); // Default to "tr" if language is not available
-    });
-}
+    const existingBadgeContainer = subjectElement.previousElementSibling;
+    if (existingBadgeContainer) existingBadgeContainer.remove();
 
-function renderSpamWarning(result, subjectElement) {
-    getUserLanguage((language) => {
-        fetch(chrome.runtime.getURL('local.json'))
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`Network response was not ok: ${response.statusText}`);
-                }
-                const contentType = response.headers.get('content-type');
-                if (!contentType || !contentType.includes('application/json')) {
-                    throw new TypeError(`Expected JSON, but received: ${contentType}`);
-                }
-                return response.json();
-            })
-            .then(translations => {
-                const { message, color, iconUrl } = getMessage(result, language, translations);
+    const badgeContainer = document.createElement('div');
+    badgeContainer.style.cssText = `
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 8px;
+        padding: 12px 20px;
+        border-radius: 8px;
+        font-family: Arial, sans-serif;
+        position: relative;
+        width: fit-content;
+        max-width: 100%;
+        box-sizing: border-box;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+    `;
 
-                // Remove previous badges
-                const existingBadgeContainer = subjectElement.previousElementSibling;
-                if (existingBadgeContainer) {
-                    existingBadgeContainer.remove();
-                }
+    // Sınıfları ekle
+    badgeContainer.classList.add('animated-gradient', className);
 
-                // Badge Container
-                const badgeContainer = document.createElement('div');
-                badgeContainer.style.cssText = `
-                    display: flex;
-                    align-items: center;
-                    gap: 10px;
-                    margin-bottom: 8px;
-                    padding: 12px 20px;
-                    border-radius: 8px;
-                    font-family: Arial, sans-serif;
-                    position: relative;
-                    width: fit-content;
-                    max-width: 100%;
-                    box-sizing: border-box;
-                    animation: gradient-flow 6s ease infinite;
-                    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
-                `;
+    // Burada CSS değişkenini set ediyoruz
+    // gradientColor değerini getMessage fonksiyonundan döndüreceğiz
+    badgeContainer.style.setProperty('--dynamic-gradient', gradientColor);
 
-                // Inject animation styles dynamically
-                const styleElement = document.createElement("style");
-                styleElement.textContent = `
-                    @keyframes gradient-flow {
-                        0% {
-                            background-position: 0% 50%;
-                        }
-                        50% {
-                            background-position: 100% 50%;
-                        }
-                        100% {
-                            background-position: 0% 50%;
-                        }
-                    }
+    const messageBox = document.createElement('div');
+    messageBox.style.cssText = `
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        color: #FFFFFF;
+        font-size: 16px;
+        font-weight: bold;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    `;
 
-                    .animated-gradient {
-                        background: ${color};
-                        background-size: 300% 300%;
-                    }
-                `;
-                document.head.appendChild(styleElement);
+    const icon = document.createElement('img');
+    icon.src = iconUrl;
+    icon.alt = "Icon";
+    icon.style.cssText = `
+        width: 24px;
+        height: 24px;
+        object-fit: contain;
+    `;
 
-                // Configure the animated badge
-                badgeContainer.classList.add('animated-gradient');
+    const messageText = document.createElement('span');
+    messageText.textContent = message;
+    messageText.style.cssText = `
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    `;
 
-                // Create message box
-                const messageBox = document.createElement('div');
-                messageBox.style.cssText = `
-                    display: flex;
-                    align-items: center;
-                    gap: 10px;
-                    color: #FFFFFF;
-                    font-size: 16px;
-                    font-weight: bold;
-                    white-space: nowrap;
-                    overflow: hidden;
-                    text-overflow: ellipsis;
-                `;
+    messageBox.appendChild(icon);
+    messageBox.appendChild(messageText);
+    badgeContainer.appendChild(messageBox);
 
-                // Add icon
-                const icon = document.createElement('img');
-                icon.src = iconUrl;
-                icon.alt = "Icon";
-                icon.style.cssText = `
-                    width: 24px;
-                    height: 24px;
-                    object-fit: contain;
-                `;
-
-                // Add text
-                const messageText = document.createElement('span');
-                messageText.textContent = message;
-                messageText.style.cssText = `
-                    white-space: nowrap;
-                    overflow: hidden;
-                    text-overflow: ellipsis;
-                `;
-
-                // Append elements
-                messageBox.appendChild(icon);
-                messageBox.appendChild(messageText);
-                badgeContainer.appendChild(messageBox);
-
-                // Insert badge container
-                subjectElement.parentElement.insertBefore(badgeContainer, subjectElement);
-            })
-            .catch(error => {
-                console.error('Error fetching translations:', error);
-            });
-    });
+    subjectElement.parentElement.insertBefore(badgeContainer, subjectElement);
 }
 
 function getMessage(result, language, translations) {
     let message = "";
-    let color = "";
+    let className = "";
+    let gradientColor = "";
     let iconUrl = "";
 
     if (result.spf === "PASS" && result.dmarc === "PASS" && result.dkim === "PASS") {
         message = translations[language].reliable;
-        color = "linear-gradient(45deg, #A3E635, #6DCB20, #45B200, #6DCB20, #A3E635)";
+        className = "gradient-reliable";
+        gradientColor = "linear-gradient(45deg, #A3E635, #6DCB20, #45B200, #6DCB20, #A3E635)";
         iconUrl = chrome.runtime.getURL("img/verified.png");
     } else if (result.dkim === "FAIL") {
         message = translations[language].dangerous;
-        color = "linear-gradient(45deg, #FF4500, #DC143C, #B22222, #DC143C, #FF4500)";
+        className = "gradient-dangerous";
+        gradientColor = "linear-gradient(45deg, #FF4500, #DC143C, #B22222, #DC143C, #FF4500)";
         iconUrl = chrome.runtime.getURL("img/block.png");
     } else if (result.dkim === "MISSING") {
         message = translations[language].suspicious;
-        color = "linear-gradient(45deg, #FF4500, #DC143C, #B22222, #DC143C, #FF4500)";
+        className = "gradient-suspicious";
+        gradientColor = "linear-gradient(45deg, #FF4500, #DC143C, #B22222, #DC143C, #FF4500)";
         iconUrl = chrome.runtime.getURL("img/caution.png");
     } else if (result.dmarc === "MISSING" || result.dmarc === "FAIL") {
         message = translations[language].partially_reliable;
-        color = "linear-gradient(45deg, #FFA500, #FF8C00, #CC7000, #FF8C00, #FFA500)";
+        className = "gradient-partially-reliable";
+        gradientColor = "linear-gradient(45deg, #FFA500, #FF8C00, #CC7000, #FF8C00, #FFA500)";
         iconUrl = chrome.runtime.getURL("img/yellowShield.png");
     } else {
         message = translations[language].unverified;
-        color = "linear-gradient(45deg, #333333, #555555, #777777, #000000)";
+        className = "gradient-unverified";
+        gradientColor = "linear-gradient(45deg, #333333, #555555, #777777, #000000)";
         iconUrl = chrome.runtime.getURL("img/unknown.png");
     }
 
-    return { message, color, iconUrl };
+    return { message, className, iconUrl, gradientColor };
 }
-
 
 async function checkEmailAuthentication(responseData, messageId) {
     const subjectElements = document.querySelectorAll('[data-thread-perm-id]');
-    if (subjectElements.length === 0) {
-        return;
-    }
+    if (subjectElements.length === 0) return;
 
     const subjectElement = subjectElements[0];
 
-    // Kimlik doğrulama sonuçları
     const result = {
-        spf: responseData.match(/spf=(pass|fail)/i)
-            ? responseData.includes("spf=pass")
-                ? "PASS"
-                : "FAIL"
-            : "MISSING",
-        dmarc: responseData.match(/dmarc=(pass|fail)/i)
-            ? responseData.includes("dmarc=pass")
-                ? "PASS"
-                : "FAIL"
-            : "MISSING",
-        dkim: responseData.match(/dkim=(pass|fail)/i)
-            ? responseData.includes("dkim=pass")
-                ? "PASS"
-                : "FAIL"
-            : "MISSING",
+        spf: responseData.includes("spf=pass") ? "PASS" : (responseData.match(/spf=(pass|fail)/i) ? "FAIL" : "MISSING"),
+        dmarc: responseData.includes("dmarc=pass") ? "PASS" : (responseData.match(/dmarc=(pass|fail)/i) ? "FAIL" : "MISSING"),
+        dkim: responseData.includes("dkim=pass") ? "PASS" : (responseData.match(/dkim=(pass|fail)/i) ? "FAIL" : "MISSING")
     };
 
-    // Spam uyarısını render et
-    renderSpamWarning(result, subjectElement);
-
-    // Mesaj sonuçlarını kaydet
-    saveMessageResult(messageId, result);
-    updateResults(result);
+    await renderSpamWarning(result, subjectElement);
+    await saveMessageResult(messageId, result);
+    await updateResults(result);
 }
 
-function restoreSubject(messageId) {
-    chrome.storage.local.get('checkedMessages', (data) => {
-        const messages = data.checkedMessages || {};
-        const result = messages[messageId]?.result;
+async function restoreSubject(messageId) {
+    // Instead of multiple storage calls, rely on cachedCheckedMessages if present
+    if (cachedCheckedMessages === null) {
+        const data = await storageGet('checkedMessages');
+        cachedCheckedMessages = data.checkedMessages || {};
+    }
 
-        if (!result) {
-            return;
-        }
+    const result = cachedCheckedMessages[messageId]?.result;
+    if (!result) return;
 
-        const subjectElements = document.querySelectorAll('[data-thread-perm-id]');
-        if (subjectElements.length === 0) {
-            return;
-        }
+    const subjectElements = document.querySelectorAll('[data-thread-perm-id]');
+    if (subjectElements.length === 0) return;
 
-        const subjectElement = subjectElements[0];
-
-        // Render the warning with the current language
-        renderSpamWarning(result, subjectElement);
-    });
+    const subjectElement = subjectElements[0];
+    await renderSpamWarning(result, subjectElement);
 }
-
-
 
 const urlPattern = /#(inbox|search|spam|trash|starred)\//;
 
@@ -357,13 +328,16 @@ function observeUrlChanges() {
     let lastUrl = window.location.href;
     const observer = new MutationObserver(() => {
         const currentUrl = window.location.href;
-
         if (currentUrl !== lastUrl) {
             lastUrl = currentUrl;
             if (urlPattern.test(currentUrl)) {
-                const base64Code = currentUrl.split('#')[1].split('/')[1];
-                if (base64Code) {
-                    checkMessageId();
+                const parts = currentUrl.split('#');
+                if (parts[1]) {
+                    const subParts = parts[1].split('/');
+                    const base64Code = subParts[1];
+                    if (base64Code) {
+                        checkMessageId();
+                    }
                 }
             }
         }
@@ -372,22 +346,22 @@ function observeUrlChanges() {
     observer.observe(document, { subtree: true, childList: true });
 }
 
-function cleanupOldMessages() {
-    const ONE_DAY = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+async function cleanupOldMessages() {
+    const ONE_DAY = 24 * 60 * 60 * 1000; // 24 hours
     const now = Date.now();
 
-    chrome.storage.local.get('checkedMessages', (data) => {
-        const messages = data.checkedMessages || {};
-        const updatedMessages = {};
+    const data = await storageGet('checkedMessages');
+    const messages = data.checkedMessages || {};
+    const updatedMessages = {};
 
-        for (const [messageId, messageData] of Object.entries(messages)) {
-            if (now - messageData.createdAt < ONE_DAY) {
-                updatedMessages[messageId] = messageData;
-            }
+    for (const [messageId, messageData] of Object.entries(messages)) {
+        if (now - messageData.createdAt < ONE_DAY) {
+            updatedMessages[messageId] = messageData;
         }
+    }
 
-        chrome.storage.local.set({ checkedMessages: updatedMessages });
-    });
+    await storageSet({ checkedMessages: updatedMessages });
+    cachedCheckedMessages = updatedMessages;
 }
 
 window.addEventListener('load', () => {
@@ -396,7 +370,7 @@ window.addEventListener('load', () => {
         try {
             cleanupOldMessages();
         } catch (error) {
-                console.info("Extension context invalidated. Cleanup skipped.");
+            console.info("Extension context invalidated. Cleanup skipped.");
         }
-    }, 1800000); // 30 minutes in milliseconds
+    }, 1800000); // 30 minutes
 });

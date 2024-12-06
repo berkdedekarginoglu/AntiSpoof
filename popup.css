@@ -1,3 +1,4 @@
+/* Orijinal popup.css içeriği */
 body {
     font-family: Arial, sans-serif;
     background-color: #1e1e2e; /* Dark background */
@@ -150,7 +151,7 @@ p {
 }
 
 #excluded-domains {
-    max-height: 200px; /* Adjust height as needed */
+    max-height: 190px; /* Adjust height as needed */
     overflow-y: auto;
     background-color: #2c3e50; /* Match the general extension UI background color */
     padding: 10px;
@@ -159,7 +160,10 @@ p {
 }
 
 #excluded-domains div {
-    background-color: #2f3b4a; /* Match the general extension UI background color */
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: #2f3b4a;
     color: #ddd;
     margin-bottom: 5px;
     padding: 5px;
@@ -179,3 +183,246 @@ p {
 .hidden {
     display: none;
 }
+
+
+/* Aşağıdaki kurallar popup.html içindeki <style> etiketinden taşınmıştır */
+
+/* body stilini güncelliyoruz:
+   Not: Daha önce background-color: #1e1e2e idi,
+   şimdi linear-gradient var. İkisinden hangisini tercih edeceğinizi seçin.
+   Burada son kural kazandığından linear-gradient uygulanacaktır. */
+body {
+    overflow: hidden;
+    font-family: Arial, sans-serif;
+    margin: 0;
+    width: 400px;
+    height: 600px;
+    background: linear-gradient(to bottom, #2c3e50, #4f4f4f 70%, #3a3a3a 90%);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+h2 {
+    margin: 10px 0;
+    font-size: 20px;
+}
+
+canvas {
+    width: 100% !important;
+    height: auto !important;
+}
+
+.domain-list {
+    flex: 1;
+    overflow-y: auto;
+    width: 100%;
+    margin-bottom: 10px;
+    padding: 10px;
+    border: 1px solid #555;
+    border-radius: 8px;
+    background-color: #2f3b4a;
+    max-height: 200px;
+}
+
+.domain-list p {
+    margin: 5px 0;
+    font-size: 14px;
+    color: #ddd;
+}
+
+.input-group {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    margin-bottom: 10px;
+}
+
+input[type="text"] {
+    flex: 1;
+    padding: 8px;
+    font-size: 14px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    margin-right: 10px;
+}
+
+/* Genel button tanımı (Not: Daha önce popup.css'te tanımlanmadıysa bu geçerli olacak) */
+button {
+    padding: 8px 12px;
+    font-size: 14px;
+    font-weight: bold;
+    color: #ffc107;
+    background-color: transparent;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+button:hover {
+    background-color: #3498db;
+}
+
+#footer {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    text-align: center;
+    padding: 10px;
+    font-size: 12px;
+    color: #bbb;
+    background-color: #3a3a3a;
+}
+
+.top-buttons {
+    display: flex;
+    justify-content: flex-end;
+    width: 100%;
+}
+
+.language-button {
+    padding-top: 4px;
+    position: absolute;
+    top: 2px;
+    right: 2px;
+}
+
+.language-button button {
+    padding: 5px 10px;
+    font-size: 11px;
+    color: white;
+    background-color: transparent;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.language-button button:hover {
+    background-color: #2980b9;
+}
+
+.reset-container {
+    position: relative;
+    width: 100%;
+    display: flex;
+    justify-content: flex-end;
+}
+
+.reset-icon {
+    background-color: transparent;
+    border: none;
+    color: white;
+    font-size: 25px;
+    cursor: pointer;
+    padding: 0px;
+}
+
+.about-us-section {
+    text-align: center;
+    color: #ffffff;
+    background: #2b2b2b;
+    padding: 7px;
+    border-radius: 10px;
+}
+
+.team-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 30px;
+    margin: 10px 0;
+    margin-bottom: 10px;
+}
+
+.profile {
+    text-align: center;
+    font-size: 0.9rem;
+    font-weight: bold;
+}
+
+.profile-photo {
+    width: 78px;
+    height: 78px;
+    border-radius: 50%;
+    padding: 2px; /* Gradient border için alan */
+    background: linear-gradient(45deg, #ff0066, #ffcc00, #00ffcc, #0066ff);
+    background-size: 300% 300%;
+    animation: gradient-animation 3s ease infinite; /* Hareketli gradient */
+}
+
+@keyframes gradient-animation {
+    0% {
+        background-position: 0% 50%;
+    }
+    50% {
+        background-position: 100% 50%;
+    }
+    100% {
+        background-position: 0% 50%;
+    }
+}
+
+.profile-photo img {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%; /* Fotoğrafın dairesel görünmesi için */
+    display: block;
+    border: 3px solid #2b2b2b; /* Fotoğraf ile gradient arasında iç çerçeve */
+}
+
+.profile p {
+    margin-top: 10px !important;
+    margin: 0;
+    font-weight: bold;
+    color: #ffffff;
+}
+
+.team-description {
+    font-size: 0.9rem;
+    margin-top: 10px;
+    margin-bottom: 10px;
+    color: #a3a3a3;
+    font-size: 0.8rem;
+}
+
+.coffee-link {
+    display: inline-block;
+    font-size: 0.8rem; /* Font size */
+    font-weight: bold; /* Bold text */
+    color: #ffc107; /* Yellow color */
+    text-decoration: none; /* No underline */
+    transition: color 0.3s ease; /* Color transition */
+}
+
+.coffee-link:hover {
+    color: #ff5722; /* Orange color on hover */
+    cursor: pointer; /* Pointer cursor */
+}
+
+.profile-link {
+    display: inline-block;
+    font-size: 0.8rem; /* Yazı boyutu */
+    font-weight: bold; /* Kalın yazı */
+    color: #ffffff;
+    text-decoration: none; /* Alt çizgi kaldırıldı */
+    transition: color 0.3s ease; /* Renk değişimi animasyonu */
+}
+
+.profile-link:hover {
+    color: #ff5722;
+    cursor: pointer;
+}
+
+#about-us-section h2 {
+    text-align: center;
+    width: 100%;
+}
+
