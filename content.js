@@ -40,10 +40,8 @@ async function initializeLanguage() {
 
 // Get user language from cache or storage
 async function getUserLanguage() {
-    if (cachedLanguage) return cachedLanguage;
     const data = await storageGet('language');
-    cachedLanguage = data.language || 'tr';
-    return cachedLanguage;
+    return data.language || 'tr';
 }
 
 // Load excluded domains if not cached
@@ -83,7 +81,7 @@ async function initializeStorage() {
     }
 
     await loadExcludedDomains(); // This sets cachedExcludedDomains
-    await initializeLanguage(); // This sets cachedLanguage
+    //await initializeLanguage(); // This sets cachedLanguage
 }
 
 initializeStorage();
