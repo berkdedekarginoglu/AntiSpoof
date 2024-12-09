@@ -3,6 +3,9 @@ let cachedLanguage = null;
 let cachedTranslations = null;
 let cachedCheckedMessages = null;
 
+// Şu an görüntülenen mesajın kimliği
+let currentMessageId = null;
+
 // Helper functions for storage (to use async/await)
 function storageGet(keys) {
     return new Promise(resolve => {
@@ -23,19 +26,6 @@ async function loadTranslations() {
         cachedTranslations = await response.json();
     }
     return cachedTranslations;
-}
-
-// Initialize language only if not present
-async function initializeLanguage() {
-    const data = await storageGet('language');
-    if (!data.language) {
-        const browserLanguage = navigator.language || navigator.userLanguage;
-        const defaultLanguage = browserLanguage && browserLanguage.startsWith('tr') ? 'tr' : 'en';
-        await storageSet({ language: defaultLanguage });
-        cachedLanguage = defaultLanguage;
-    } else {
-        cachedLanguage = data.language;
-    }
 }
 
 // Get user language from cache or storage
@@ -80,8 +70,7 @@ async function initializeStorage() {
         await storageSet({ checkedMessages: {} });
     }
 
-    await loadExcludedDomains(); // This sets cachedExcludedDomains
-    //await initializeLanguage(); // This sets cachedLanguage
+    await loadExcludedDomains();
 }
 
 initializeStorage();
@@ -109,7 +98,6 @@ async function saveMessageResult(messageId, result) {
         createdAt: Date.now()
     };
     await storageSet({ checkedMessages: messages });
-    // Update cache
     cachedCheckedMessages = messages;
 }
 
@@ -147,14 +135,21 @@ async function checkMessageId() {
     const senderElement = document.querySelector('span.gD[email][name][data-hovercard-id]');
 
     if (messageIdElement && ikElement && senderElement) {
+        let messageId = messageIdElement.getAttribute('data-message-id');
+        messageId = messageId.replace('#', '');
+
+        // Eğer hali hazırda currentMessageId bu mesajı gösteriyorsa tekrar işleme
+        if (currentMessageId === messageId) {
+            return; // Aynı mesaj tekrar işlenmesin
+        }
+
+        currentMessageId = messageId;
+
         const senderEmail = senderElement.getAttribute('email');
         const senderDomain = senderEmail.split('@')[1];
 
         const isExcluded = await isDomainExcluded(senderDomain);
         if (isExcluded) return;
-
-        let messageId = messageIdElement.getAttribute('data-message-id');
-        messageId = messageId.replace('#', '');
 
         const recordedSrc = ikElement.getAttribute('data-recorded-src');
         const ikMatch = recordedSrc.match(/token=%5B%22cftp%22,%22([a-zA-Z0-9]+)%22/);
@@ -206,11 +201,7 @@ async function renderSpamWarning(result, subjectElement) {
         box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
     `;
 
-    // Sınıfları ekle
     badgeContainer.classList.add('animated-gradient', className);
-
-    // Burada CSS değişkenini set ediyoruz
-    // gradientColor değerini getMessage fonksiyonundan döndüreceğiz
     badgeContainer.style.setProperty('--dynamic-gradient', gradientColor);
 
     const messageBox = document.createElement('div');
@@ -304,7 +295,6 @@ async function checkEmailAuthentication(responseData, messageId) {
 }
 
 async function restoreSubject(messageId) {
-    // Instead of multiple storage calls, rely on cachedCheckedMessages if present
     if (cachedCheckedMessages === null) {
         const data = await storageGet('checkedMessages');
         cachedCheckedMessages = data.checkedMessages || {};
@@ -344,6 +334,20 @@ function observeUrlChanges() {
     observer.observe(document, { subtree: true, childList: true });
 }
 
+function observeDomChanges() {
+    const targetNode = document.body;
+    const config = { attributes: true, childList: true, subtree: true };
+    const callback = () => {
+        // DOM değiştiğinde tekrar kontrol et
+        checkMessageId();
+    };
+    const domObserver = new MutationObserver(callback);
+    domObserver.observe(targetNode, config);
+
+    // İlk yüklemede de dene
+    checkMessageId();
+}
+
 async function cleanupOldMessages() {
     const ONE_DAY = 24 * 60 * 60 * 1000; // 24 hours
     const now = Date.now();
@@ -364,6 +368,7 @@ async function cleanupOldMessages() {
 
 window.addEventListener('load', () => {
     observeUrlChanges();
+    observeDomChanges();
     setInterval(() => {
         try {
             cleanupOldMessages();
