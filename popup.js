@@ -34,8 +34,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             datasets: [{
                 label: 'Verification Results',
                 data: [ results.dmarc_fail, results.dkim_fail, results.spf_fail],
-                backgroundColor: ['#27ae60', '#c0392b', '#f39c12', '#2980b9'],
-                borderColor: ['#1e8449', '#922b21', '#d68910', '#21618c'],
+                backgroundColor: ['#c0392b', '#f39c12', '#2980b9'],
+                borderColor: ['#922b21', '#d68910', '#21618c'],
                 borderWidth: 1
             }]
         };
