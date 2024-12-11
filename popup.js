@@ -28,12 +28,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     function drawChart(results) {
-        const maxVal = Math.max(results.success, results.dmarc_fail, results.dkim_fail, results.spf_fail);
+        const maxVal = Math.max( results.dmarc_fail, results.dkim_fail, results.spf_fail);
         const data = {
-            labels: ['Success', 'DMARC Fail', 'DKIM Fail', 'SPF Fail'],
+            labels: ['DMARC Fail', 'DKIM Fail', 'SPF Fail'],
             datasets: [{
                 label: 'Verification Results',
-                data: [results.success, results.dmarc_fail, results.dkim_fail, results.spf_fail],
+                data: [ results.dmarc_fail, results.dkim_fail, results.spf_fail],
                 backgroundColor: ['#27ae60', '#c0392b', '#f39c12', '#2980b9'],
                 borderColor: ['#1e8449', '#922b21', '#d68910', '#21618c'],
                 borderWidth: 1

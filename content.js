@@ -182,6 +182,8 @@ async function renderSpamWarning(result, subjectElement) {
     const translations = await loadTranslations();
     const { message, className, iconUrl, gradientColor } = getMessage(result, language, translations);
 
+    if(!message) return;
+
     const existingBadgeContainer = subjectElement.previousElementSibling;
     if (existingBadgeContainer) existingBadgeContainer.remove();
 
@@ -248,10 +250,13 @@ function getMessage(result, language, translations) {
     let iconUrl = "";
 
     if (result.spf === "PASS" && result.dmarc === "PASS" && result.dkim === "PASS") {
+        /*
         message = translations[language].reliable;
         className = "gradient-reliable";
         gradientColor = "linear-gradient(45deg, #A3E635, #6DCB20, #45B200, #6DCB20, #A3E635)";
         iconUrl = chrome.runtime.getURL("img/verified.png");
+         */
+        message = false
     } else if (result.dkim === "FAIL") {
         message = translations[language].dangerous;
         className = "gradient-dangerous";
