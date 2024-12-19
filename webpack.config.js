@@ -18,6 +18,9 @@ cp icon-16.png dist/
 cp icon-48.png dist/
 cp icon-128.png dist/
 cp README.md dist/
+cp background.js dist/
+cp content.css dist/
+cp excluded_domains.json dist/
 
 4) Zip the dist Directory: Create a zip file of the dist directory for uploading to the Chrome Web Store.
 cd dist

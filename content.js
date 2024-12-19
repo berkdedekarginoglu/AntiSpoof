@@ -344,13 +344,17 @@ function observeDomChanges() {
     const config = { attributes: true, childList: true, subtree: true };
     const callback = () => {
         // DOM değiştiğinde tekrar kontrol et
-        checkMessageId();
+        if (urlPattern.test(window.location.href)) {
+            checkMessageId();
+        }
     };
     const domObserver = new MutationObserver(callback);
     domObserver.observe(targetNode, config);
 
     // İlk yüklemede de dene
-    checkMessageId();
+    if (urlPattern.test(window.location.href)) {
+        checkMessageId();
+    }
 }
 
 async function cleanupOldMessages() {
