@@ -1,25 +1,45 @@
-Introduction
 This Privacy Policy explains how the DMARC Testing Extension ("AntiSpoof") handles your data. By using the Extension, you agree to the terms outlined in this policy.
 
 Data Collection and Usage
-No Personal Data Collection: This Extension does not collect, store, or transmit any personal information.
-Local Operations: All DMARC validation and testing occur locally on your device. No data is sent to external servers.
-No Tracking: The Extension does not track your activity or usage in any way.
+No Personal Data Collection
+
+This Extension does not collect, store, or transmit any personal information.
+Local Operations
+
+All operations, including DMARC validation, spoof detection, and excluded domain filtering, are performed locally on your device.
+The Extension retrieves email headers by querying Google's API using the message-id of an email. These queries are performed securely and are used solely to analyze the email headers for validation purposes. No additional data is collected or transmitted.
+Stored Data for Graphs
+
+The Extension keeps a count of DMARC, SPF, and DKIM failures and successes to display the verification results graphically in the user interface.
+This information is stored locally on your device and is not shared, transmitted, or accessible to any external entity.
+Excluded Domains Feature
+
+The Extension includes an "Excluded Domains" feature that allows users to exclude specific domains from analysis.
+Emails originating from excluded domains are bypassed from AntiSpoof's analysis.
+Excluded domains are stored locally in your browser's storage and are not shared, transmitted, or accessed externally.
+No Tracking
+
+The Extension does not track your activity or usage in any way.
 Permissions
 The Extension may request certain browser permissions to function correctly, such as:
 
-Access to DNS lookup tools for validating DMARC records.
+Access to Google Endpoints: Required to fetch email headers securely using message-id for analysis.
+Storage Access: Used to store user preferences, including the list of excluded domains and numeric counts for DMARC, SPF, and DKIM validation results, locally on your device.
 These permissions are solely for providing the intended functionality and are not used for any other purpose.
 
 Third-Party Services
-This Extension does not integrate with any third-party services or share data with external entities.
+This Extension does not integrate with or share data with third-party services. All queries to Google's API for email headers are performed securely and directly by the user's browser.
 
 Security
-We prioritize the security of your data. Since no personal or sensitive information is collected, the risk to your data is minimal.
+We prioritize the security of your data:
 
+The Extension does not collect or share any personal or sensitive information.
+Numeric counts of validation results (e.g., DMARC, SPF, DKIM failures) are stored securely in your browser's local storage and are only used for displaying graphical results within the Extension.
+Excluded domains and other preferences are stored securely within your browser's storage and are not accessible to external entities.
 Changes to This Privacy Policy
 We may update this Privacy Policy to reflect changes to our practices or for other operational, legal, or regulatory reasons. Please review this page periodically for updates.
 
 Contact Us
 If you have any questions or concerns about this Privacy Policy, feel free to contact us:
+
 Email: bycybercoc@gmail.com
